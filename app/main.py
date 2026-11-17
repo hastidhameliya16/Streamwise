@@ -1,6 +1,11 @@
 # create a virtual environmenent
 # activate the environment 
 
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import File, Form, UploadFile
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -10,12 +15,52 @@ from app import repositories
 from app.db import get_db
 
 
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+
+
+@app.post("/videos/upload", status_code=201)
+async def upload_video(
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    suffix = Path(file.filename or "").suffix.lower()
+    allowed_suffixes = {".mp4", ".mov", ".mkv"}
+
+    if suffix not in allowed_suffixes:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type. Try MP4, MOV, or MKV.",
+        )
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    saved_path = UPLOAD_DIR / f"{uuid4()}{suffix}"
+
+    try:
+        with saved_path.open("wb") as destination:
+            while chunk := await file.read(1024 * 1024):
+                destination.write(chunk)
+
+        video = repositories.create_video(
+            db,
+            title=title,
+            source_path=str(saved_path),
+            manifest_path=None,
+        )
+    except Exception:
+        saved_path.unlink(missing_ok=True)
+        raise
+    finally:
+        await file.close()
+
+    return {"id": video.id, "title": video.title, "status": video.status}
+
 @app.get("/health")
 def get_health():
     return {"status" : "ok"}
 @app.post("/videos", status_code=201)
 def create_video(title: str, db: Session = Depends(get_db)):
-    video = repositories.create_video(db, title=title, manifest_path="hls/master.m3u8")
+    video = repositories.create_video(db, title=title, manifest_path=None)
     return {"id": video.id, "title": video.title}
 
 

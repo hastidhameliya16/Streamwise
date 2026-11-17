@@ -9,6 +9,9 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-
+# Why? If you remove and recreate the container, your database data can survive because it is stored in the volume, not just in the container's writable layer.
 volumes:
   pgdata:
+
+# pgdata:/var/lib/postgresql/data → connects a Docker volume named pgdata to PostgreSQL's data directory inside the container.
+# volumes: at the bottom → declares the named volume pgdata that Docker Compose manages.

@@ -3,6 +3,7 @@ __pycache__
 .pytest_cache
 .env
 hls/
+uploads/
 *.mp4
 pyvenv.cfg
 include/

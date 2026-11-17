@@ -13,8 +13,17 @@ def list_videos(db: Session, limit: int = 20, offset: int = 0) -> list[Video]:
     return list(db.scalars(stmt))
 
 
-def create_video(db: Session, title: str, manifest_path: str | None = None) -> Video:
-    video = Video(title=title, manifest_path=manifest_path)
+def create_video(
+    db: Session,
+    title: str,
+    source_path: str | None = None,
+    manifest_path: str | None = None,
+) -> Video:
+    video = Video(
+        title=title,
+        source_path=source_path,
+        manifest_path=manifest_path,
+    )
     db.add(video)
     db.commit()
     db.refresh(video)
